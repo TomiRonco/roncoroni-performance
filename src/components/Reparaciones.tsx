@@ -40,12 +40,11 @@ export default function Reparaciones() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
-      const { error } = await supabase.from('reparaciones').insert([
-        {
-          ...formData,
-          user_id: user?.id,
-        },
-      ]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase.from('reparaciones') as any).insert({
+        ...formData,
+        user_id: user?.id,
+      });
 
       if (error) throw error;
 
