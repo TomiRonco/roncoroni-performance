@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import type { Reparacion } from '../types/database.types';
+import Modal from './Modal';
 
 export default function Reparaciones() {
   const [reparaciones, setReparaciones] = useState<Reparacion[]>([]);
   const [loading, setLoading] = useState(false);
-  const [showForm, setShowForm] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({
     nombre: '',
     apellido: '',
@@ -57,7 +58,7 @@ export default function Reparaciones() {
         cilindrada: '',
         observaciones: '',
       });
-      setShowForm(false);
+      setShowModal(false);
       fetchReparaciones();
       alert('¡Reparación registrada exitosamente!');
     } catch (error) {
@@ -84,136 +85,126 @@ export default function Reparaciones() {
 
   return (
     <div className="p-4 space-y-4">
-      {/* Botón para mostrar formulario */}
-      {!showForm && (
-        <button
-          onClick={() => setShowForm(true)}
-          className="w-full bg-blue-600 text-white py-4 rounded-lg font-semibold text-lg shadow-lg hover:bg-blue-700 transition"
-        >
-          + Nueva Reparación
-        </button>
-      )}
+      {/* Botón para abrir modal */}
+      <button
+        onClick={() => setShowModal(true)}
+        className="w-full bg-blue-600 text-white py-4 rounded-lg font-semibold text-lg shadow-lg hover:bg-blue-700 transition active:scale-98"
+      >
+        + Nueva Reparación
+      </button>
 
-      {/* Formulario */}
-      {showForm && (
-        <div className="bg-white rounded-lg shadow-lg p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold text-gray-800">Nueva Reparación</h2>
-            <button
-              onClick={() => setShowForm(false)}
-              className="text-gray-500 hover:text-gray-700 text-2xl"
-            >
-              ×
-            </button>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nombre *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.nombre}
-                  onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                  placeholder="Juan"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Apellido *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.apellido}
-                  onChange={(e) => setFormData({ ...formData, apellido: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                  placeholder="Pérez"
-                />
-              </div>
-            </div>
-
+      {/* Modal con formulario */}
+      <Modal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title="Nueva Reparación"
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Celular *
+                Nombre *
               </label>
               <input
-                type="tel"
+                type="text"
                 required
-                value={formData.celular}
-                onChange={(e) => setFormData({ ...formData, celular: e.target.value })}
+                value={formData.nombre}
+                onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                placeholder="3512345678"
+                placeholder="Juan"
               />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Marca *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.marca}
-                  onChange={(e) => setFormData({ ...formData, marca: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                  placeholder="Honda, Yamaha..."
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Cilindrada *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.cilindrada}
-                  onChange={(e) => setFormData({ ...formData, cilindrada: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                  placeholder="250cc"
-                />
-              </div>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Observaciones
+                Apellido *
               </label>
-              <textarea
-                value={formData.observaciones}
-                onChange={(e) => setFormData({ ...formData, observaciones: e.target.value })}
-                rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"
-                placeholder="Detalles de la reparación..."
+              <input
+                type="text"
+                required
+                value={formData.apellido}
+                onChange={(e) => setFormData({ ...formData, apellido: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                placeholder="Pérez"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Celular *
+            </label>
+            <input
+              type="tel"
+              required
+              value={formData.celular}
+              onChange={(e) => setFormData({ ...formData, celular: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              placeholder="3512345678"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Marca *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.marca}
+                onChange={(e) => setFormData({ ...formData, marca: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                placeholder="Honda, Yamaha..."
               />
             </div>
 
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => setShowForm(false)}
-                className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition disabled:bg-gray-400"
-              >
-                {loading ? 'Guardando...' : 'Guardar'}
-              </button>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Cilindrada *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.cilindrada}
+                onChange={(e) => setFormData({ ...formData, cilindrada: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                placeholder="250cc"
+              />
             </div>
-          </form>
-        </div>
-      )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Observaciones
+            </label>
+            <textarea
+              value={formData.observaciones}
+              onChange={(e) => setFormData({ ...formData, observaciones: e.target.value })}
+              rows={4}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"
+              placeholder="Detalles de la reparación..."
+            />
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => setShowModal(false)}
+              className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Guardando...' : 'Guardar'}
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Lista de reparaciones */}
       <div className="space-y-3">
