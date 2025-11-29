@@ -48,8 +48,6 @@ export default function PresupuestoModal({
 
   const generarMensajeWhatsApp = () => {
     const total = calcularTotal();
-    const manoObra = parseFloat(formData.costo_mano_obra) || 0;
-    const repuestos = parseFloat(formData.costo_repuestos) || 0;
 
     const mensaje = `
 🏍️ *PRESUPUESTO - Roncoroni Performance*
@@ -60,12 +58,8 @@ export default function PresupuestoModal({
 📋 *Trabajos a realizar:*
 ${formData.descripcion_trabajo}
 
-💰 *Costos:*
-• Mano de obra: ${formatearPrecio(manoObra)}
-• Repuestos: ${formatearPrecio(repuestos)}
-
 ━━━━━━━━━━━━━━━━━
-*TOTAL: ${formatearPrecio(total)}*
+💰 *COSTO TOTAL: ${formatearPrecio(total)}*
 ━━━━━━━━━━━━━━━━━
 
 ¡Gracias por confiar en nosotros! 🔧
