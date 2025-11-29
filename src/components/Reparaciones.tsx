@@ -105,11 +105,11 @@ export default function Reparaciones() {
   };
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="p-6 space-y-4 max-w-2xl mx-auto">
       {/* Botón para abrir modal */}
       <button
         onClick={() => setShowModal(true)}
-        className="w-full bg-blue-600 text-white py-4 rounded-lg font-semibold text-lg shadow-lg hover:bg-blue-700 transition active:scale-98"
+        className="w-full bg-gray-900 text-white py-3 rounded font-medium hover:bg-gray-800 transition text-sm"
       >
         + Nueva Reparación
       </button>
@@ -236,51 +236,54 @@ export default function Reparaciones() {
           </div>
         ) : (
           reparaciones.map((rep) => (
-            <div key={rep.id} className="bg-white rounded-lg shadow p-4">
+            <div key={rep.id} className="bg-white border border-gray-200 rounded p-4 hover:border-gray-300 transition">
               <div className="flex justify-between items-start mb-3">
                 <div className="flex-1">
-                  <h3 className="font-bold text-lg text-gray-800">
+                  <h3 className="font-semibold text-base text-gray-900">
                     {rep.nombre} {rep.apellido}
                   </h3>
-                  <p className="text-sm text-gray-600">📱 {rep.celular}</p>
+                  <p className="text-sm text-gray-600 mt-0.5">{rep.celular}</p>
                 </div>
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleCrearPresupuesto(rep)}
-                    className="bg-green-500 hover:bg-green-600 text-white p-2 rounded-lg transition shadow-sm"
+                    className="bg-gray-900 hover:bg-gray-800 text-white px-3 py-1.5 rounded text-xs font-medium transition"
                     title="Crear presupuesto y enviar por WhatsApp"
                   >
-                    💰
+                    Presupuesto
                   </button>
                   <button
                     onClick={() => rep.id && handleDelete(rep.id)}
-                    className="text-red-500 hover:text-red-700 text-xl"
+                    className="text-gray-400 hover:text-red-600 transition"
                     title="Eliminar reparación"
                   >
-                    🗑️
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
                   </button>
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-2 text-sm mb-2">
+              <div className="grid grid-cols-2 gap-3 text-sm mb-2">
                 <div>
-                  <span className="text-gray-600">Marca:</span>
-                  <span className="ml-1 font-medium">{rep.marca}</span>
+                  <span className="text-gray-500 text-xs">Marca</span>
+                  <p className="font-medium text-gray-900">{rep.marca}</p>
                 </div>
                 <div>
-                  <span className="text-gray-600">Cilindrada:</span>
-                  <span className="ml-1 font-medium">{rep.cilindrada}</span>
+                  <span className="text-gray-500 text-xs">Cilindrada</span>
+                  <p className="font-medium text-gray-900">{rep.cilindrada}</p>
                 </div>
               </div>
 
               {rep.observaciones && (
-                <div className="mt-2 p-3 bg-gray-50 rounded text-sm text-gray-700">
-                  <strong>Observaciones:</strong> {rep.observaciones}
+                <div className="mt-3 p-3 bg-gray-50 rounded text-sm text-gray-700 border border-gray-100">
+                  <span className="text-xs font-medium text-gray-500">Observaciones:</span>
+                  <p className="mt-1">{rep.observaciones}</p>
                 </div>
               )}
 
               {rep.created_at && (
-                <div className="mt-2 text-xs text-gray-500">
+                <div className="mt-3 text-xs text-gray-400">
                   {new Date(rep.created_at).toLocaleDateString('es-AR', {
                     day: '2-digit',
                     month: '2-digit',

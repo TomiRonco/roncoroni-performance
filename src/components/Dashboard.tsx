@@ -18,13 +18,13 @@ export default function Dashboard({ onLogout }: DashboardProps) {
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-10">
-        <div className="px-4 py-4">
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+        <div className="px-6 py-4">
           <div className="flex justify-between items-center">
-            <h1 className="text-xl font-bold text-gray-800">🏍️ Roncoroni Performance</h1>
+            <h1 className="text-lg font-semibold text-gray-900 tracking-tight">Roncoroni</h1>
             <button
               onClick={handleLogout}
-              className="text-sm text-red-600 hover:text-red-700 font-medium"
+              className="text-sm text-gray-600 hover:text-gray-900 font-medium transition-colors"
             >
               Salir
             </button>
@@ -38,29 +38,33 @@ export default function Dashboard({ onLogout }: DashboardProps) {
       </main>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-50">
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
         <div className="flex">
           <button
             onClick={() => setActiveTab('reparaciones')}
-            className={`flex-1 py-4 text-center font-medium transition flex flex-col items-center gap-1 ${
+            className={`flex-1 py-3 text-center font-medium transition-all flex flex-col items-center gap-1 ${
               activeTab === 'reparaciones'
-                ? 'text-blue-600 bg-blue-50'
-                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                ? 'text-gray-900'
+                : 'text-gray-400 hover:text-gray-600'
             }`}
           >
-            <span className="text-2xl">📝</span>
-            <span className="text-xs">Reparaciones</span>
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+            <span className="text-xs font-medium">Reparaciones</span>
           </button>
           <button
             onClick={() => setActiveTab('estadisticas')}
-            className={`flex-1 py-4 text-center font-medium transition flex flex-col items-center gap-1 ${
+            className={`flex-1 py-3 text-center font-medium transition-all flex flex-col items-center gap-1 ${
               activeTab === 'estadisticas'
-                ? 'text-blue-600 bg-blue-50'
-                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                ? 'text-gray-900'
+                : 'text-gray-400 hover:text-gray-600'
             }`}
           >
-            <span className="text-2xl">📊</span>
-            <span className="text-xs">Estadísticas</span>
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            <span className="text-xs font-medium">Estadísticas</span>
           </button>
         </div>
       </nav>

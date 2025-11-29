@@ -1,76 +1,161 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../supabaseClient';
-import type { Reparacion } from '../types/database.types';
+import type { Presupuesto } from '../types/database.types';
+import jsPDF from 'jspdf';
 
 interface Stats {
-  total: number;
-  porMarca: { [key: string]: number };
-  porCilindrada: { [key: string]: number };
-  ultimaSemana: number;
-  ultimoMes: number;
+  totalManoObra: number;
+  totalRepuestos: number;
+  totalGeneral: number;
+  cantidadPresupuestos: number;
 }
 
 export default function Estadisticas() {
   const [stats, setStats] = useState<Stats>({
-    total: 0,
-    porMarca: {},
-    porCilindrada: {},
-    ultimaSemana: 0,
-    ultimoMes: 0,
+    totalManoObra: 0,
+    totalRepuestos: 0,
+    totalGeneral: 0,
+    cantidadPresupuestos: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [mesSeleccionado, setMesSeleccionado] = useState('');
+  const [presupuestos, setPresupuestos] = useState<Presupuesto[]>([]);
+  const [mesesDisponibles, setMesesDisponibles] = useState<string[]>([]);
 
-  useEffect(() => {
-    fetchEstadisticas();
-  }, []);
-
-  const fetchEstadisticas = async () => {
+  const fetchPresupuestos = async () => {
     try {
       const { data, error } = await supabase
-        .from('reparaciones')
+        .from('presupuestos')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      const reparaciones = data || [];
-      const now = new Date();
-      const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      const presupuestosData = data || [];
+      setPresupuestos(presupuestosData);
 
-      // Calcular estadísticas
-      const porMarca: { [key: string]: number } = {};
-      const porCilindrada: { [key: string]: number } = {};
-      let ultimaSemana = 0;
-      let ultimoMes = 0;
-
-      reparaciones.forEach((rep: Reparacion) => {
-        // Contar por marca
-        porMarca[rep.marca] = (porMarca[rep.marca] || 0) + 1;
-
-        // Contar por cilindrada
-        porCilindrada[rep.cilindrada] = (porCilindrada[rep.cilindrada] || 0) + 1;
-
-        // Contar últimas semana y mes
-        if (rep.created_at) {
-          const createdDate = new Date(rep.created_at);
-          if (createdDate >= oneWeekAgo) ultimaSemana++;
-          if (createdDate >= oneMonthAgo) ultimoMes++;
+      // Obtener meses únicos
+      const meses = new Set<string>();
+      presupuestosData.forEach((p: Presupuesto) => {
+        if (p.created_at) {
+          const fecha = new Date(p.created_at);
+          const mesAnio = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
+          meses.add(mesAnio);
         }
       });
-
-      setStats({
-        total: reparaciones.length,
-        porMarca,
-        porCilindrada,
-        ultimaSemana,
-        ultimoMes,
-      });
+      
+      const mesesArray = Array.from(meses).sort().reverse();
+      setMesesDisponibles(mesesArray);
+      
+      // Seleccionar el mes actual por defecto
+      const hoy = new Date();
+      const mesActual = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
+      setMesSeleccionado(mesActual);
+      
     } catch (error) {
-      console.error('Error al cargar estadísticas:', error);
+      console.error('Error al cargar presupuestos:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const calcularEstadisticas = useCallback(() => {
+    let presupuestosFiltrados = presupuestos;
+
+    // Filtrar por mes si hay uno seleccionado
+    if (mesSeleccionado) {
+      presupuestosFiltrados = presupuestos.filter((p) => {
+        if (!p.created_at) return false;
+        const fecha = new Date(p.created_at);
+        const mesAnio = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
+        return mesAnio === mesSeleccionado;
+      });
+    }
+
+    const totalManoObra = presupuestosFiltrados.reduce(
+      (sum, p) => sum + (p.costo_mano_obra || 0),
+      0
+    );
+    const totalRepuestos = presupuestosFiltrados.reduce(
+      (sum, p) => sum + (p.costo_repuestos || 0),
+      0
+    );
+
+    setStats({
+      totalManoObra,
+      totalRepuestos,
+      totalGeneral: totalManoObra + totalRepuestos,
+      cantidadPresupuestos: presupuestosFiltrados.length,
+    });
+  }, [presupuestos, mesSeleccionado]);
+
+  useEffect(() => {
+    fetchPresupuestos();
+  }, []);
+
+  useEffect(() => {
+    calcularEstadisticas();
+  }, [calcularEstadisticas]);
+
+  const formatearPrecio = (valor: number) => {
+    return new Intl.NumberFormat('es-AR', {
+      style: 'currency',
+      currency: 'ARS',
+      minimumFractionDigits: 0,
+    }).format(valor);
+  };
+
+  const obtenerNombreMes = (mesAnio: string) => {
+    const [anio, mes] = mesAnio.split('-');
+    const fecha = new Date(parseInt(anio), parseInt(mes) - 1);
+    return fecha.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+  };
+
+  const exportarPDF = () => {
+    const doc = new jsPDF();
+    
+    // Título
+    doc.setFontSize(18);
+    doc.text('Roncoroni Performance', 105, 20, { align: 'center' });
+    doc.setFontSize(14);
+    doc.text('Reporte Financiero', 105, 30, { align: 'center' });
+    
+    // Período
+    if (mesSeleccionado) {
+      doc.setFontSize(12);
+      doc.text(`Período: ${obtenerNombreMes(mesSeleccionado)}`, 105, 40, { align: 'center' });
+    }
+    
+    // Línea separadora
+    doc.setLineWidth(0.5);
+    doc.line(20, 45, 190, 45);
+    
+    // Totales
+    doc.setFontSize(12);
+    let yPos = 60;
+    
+    doc.text('Resumen Financiero:', 20, yPos);
+    yPos += 10;
+    
+    doc.setFontSize(11);
+    doc.text(`Cantidad de presupuestos: ${stats.cantidadPresupuestos}`, 30, yPos);
+    yPos += 10;
+    
+    doc.text(`Total Mano de Obra (Ganancias): ${formatearPrecio(stats.totalManoObra)}`, 30, yPos);
+    yPos += 8;
+    
+    doc.text(`Total Repuestos: ${formatearPrecio(stats.totalRepuestos)}`, 30, yPos);
+    yPos += 8;
+    
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`TOTAL GENERAL: ${formatearPrecio(stats.totalGeneral)}`, 30, yPos);
+    
+    // Guardar PDF
+    const nombreArchivo = mesSeleccionado 
+      ? `reporte-${mesSeleccionado}.pdf` 
+      : 'reporte-general.pdf';
+    doc.save(nombreArchivo);
   };
 
   if (loading) {
@@ -83,113 +168,90 @@ export default function Estadisticas() {
 
   return (
     <div className="p-4 space-y-4">
-      {/* Resumen general */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-4 text-white shadow-lg">
-          <div className="text-3xl font-bold">{stats.total}</div>
-          <div className="text-sm opacity-90 mt-1">Total</div>
+      {/* Filtro y Exportar */}
+      <div className="bg-white border border-gray-200 rounded p-4 space-y-3">
+        <div>
+          <label className="block text-sm font-medium text-gray-900 mb-2">
+            Filtrar por mes
+          </label>
+          <select
+            value={mesSeleccionado}
+            onChange={(e) => setMesSeleccionado(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none text-sm"
+          >
+            <option value="">Todos los meses</option>
+            {mesesDisponibles.map((mes) => (
+              <option key={mes} value={mes}>
+                {obtenerNombreMes(mes)}
+              </option>
+            ))}
+          </select>
         </div>
-        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-4 text-white shadow-lg">
-          <div className="text-3xl font-bold">{stats.ultimaSemana}</div>
-          <div className="text-sm opacity-90 mt-1">Esta semana</div>
-        </div>
-        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-4 text-white shadow-lg">
-          <div className="text-3xl font-bold">{stats.ultimoMes}</div>
-          <div className="text-sm opacity-90 mt-1">Este mes</div>
-        </div>
+        
+        <button
+          onClick={exportarPDF}
+          className="w-full bg-gray-900 hover:bg-gray-800 text-white py-3 rounded font-medium transition flex items-center justify-center gap-2 text-sm"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          Exportar a PDF
+        </button>
       </div>
 
-      {/* Por marca */}
-      <div className="bg-white rounded-lg shadow-lg p-5">
-        <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
-          🏍️ Por Marca
-        </h3>
-        {Object.keys(stats.porMarca).length === 0 ? (
-          <p className="text-gray-500 text-sm">No hay datos disponibles</p>
-        ) : (
-          <div className="space-y-3">
-            {Object.entries(stats.porMarca)
-              .sort(([, a], [, b]) => b - a)
-              .map(([marca, cantidad]) => (
-                <div key={marca}>
-                  <div className="flex justify-between mb-1">
-                    <span className="text-sm font-medium text-gray-700">{marca}</span>
-                    <span className="text-sm font-bold text-blue-600">{cantidad}</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2.5">
-                    <div
-                      className="bg-blue-600 h-2.5 rounded-full transition-all"
-                      style={{
-                        width: `${(cantidad / stats.total) * 100}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
-          </div>
-        )}
-      </div>
-
-      {/* Por cilindrada */}
-      <div className="bg-white rounded-lg shadow-lg p-5">
-        <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
-          ⚙️ Por Cilindrada
-        </h3>
-        {Object.keys(stats.porCilindrada).length === 0 ? (
-          <p className="text-gray-500 text-sm">No hay datos disponibles</p>
-        ) : (
-          <div className="space-y-3">
-            {Object.entries(stats.porCilindrada)
-              .sort(([, a], [, b]) => b - a)
-              .map(([cilindrada, cantidad]) => (
-                <div key={cilindrada}>
-                  <div className="flex justify-between mb-1">
-                    <span className="text-sm font-medium text-gray-700">{cilindrada}</span>
-                    <span className="text-sm font-bold text-purple-600">{cantidad}</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2.5">
-                    <div
-                      className="bg-purple-600 h-2.5 rounded-full transition-all"
-                      style={{
-                        width: `${(cantidad / stats.total) * 100}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
-          </div>
-        )}
-      </div>
-
-      {/* Información adicional */}
-      <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-5 border border-orange-200">
-        <h3 className="text-lg font-bold text-orange-800 mb-2">📈 Insights</h3>
-        <div className="space-y-2 text-sm text-orange-900">
-          {stats.total > 0 && (
-            <>
-              <p>
-                • Marca más popular:{' '}
-                <strong>
-                  {Object.entries(stats.porMarca).sort(([, a], [, b]) => b - a)[0]?.[0] || 'N/A'}
-                </strong>
-              </p>
-              <p>
-                • Cilindrada más común:{' '}
-                <strong>
-                  {Object.entries(stats.porCilindrada).sort(([, a], [, b]) => b - a)[0]?.[0] || 'N/A'}
-                </strong>
-              </p>
-              <p>
-                • Promedio semanal:{' '}
-                <strong>{(stats.total / 4).toFixed(1)} reparaciones</strong>
-              </p>
-            </>
+      {/* Resumen Financiero */}
+      <div className="bg-white border border-gray-200 rounded p-5">
+        <h3 className="text-base font-semibold text-gray-900 mb-4">
+          Resumen Financiero
+          {mesSeleccionado && (
+            <span className="text-sm font-normal text-gray-500 ml-2">
+              ({obtenerNombreMes(mesSeleccionado)})
+            </span>
           )}
-          {stats.total === 0 && (
-            <p>No hay suficientes datos para mostrar insights.</p>
-          )}
+        </h3>
+        
+        <div className="space-y-4">
+          <div className="flex justify-between items-center pb-3 border-b border-gray-200">
+            <span className="text-sm text-gray-700">Cantidad de presupuestos</span>
+            <span className="text-lg font-semibold text-gray-900">{stats.cantidadPresupuestos}</span>
+          </div>
+          
+          <div className="flex justify-between items-center pb-3 border-b border-gray-200">
+            <div>
+              <span className="text-sm text-gray-700">Total Mano de Obra</span>
+              <p className="text-xs text-gray-500">(Ganancias)</p>
+            </div>
+            <span className="text-lg font-semibold text-gray-900">
+              {formatearPrecio(stats.totalManoObra)}
+            </span>
+          </div>
+          
+          <div className="flex justify-between items-center pb-3 border-b border-gray-200">
+            <span className="text-sm text-gray-700">Total Repuestos</span>
+            <span className="text-lg font-semibold text-gray-900">
+              {formatearPrecio(stats.totalRepuestos)}
+            </span>
+          </div>
+          
+          <div className="flex justify-between items-center pt-2">
+            <span className="text-base font-semibold text-gray-900">TOTAL GENERAL</span>
+            <span className="text-2xl font-bold text-gray-900">
+              {formatearPrecio(stats.totalGeneral)}
+            </span>
+          </div>
         </div>
       </div>
+
+      {/* Info adicional */}
+      {stats.cantidadPresupuestos === 0 && (
+        <div className="bg-gray-50 border border-gray-200 rounded p-5 text-center">
+          <p className="text-sm text-gray-600">
+            {mesSeleccionado 
+              ? `No hay presupuestos registrados en ${obtenerNombreMes(mesSeleccionado)}`
+              : 'No hay presupuestos registrados'}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
