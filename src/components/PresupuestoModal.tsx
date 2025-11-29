@@ -50,7 +50,7 @@ export default function PresupuestoModal({
     const total = calcularTotal();
 
     const mensaje = `
-🏍️ *PRESUPUESTO - Roncoroni Performance*
+🏍️ *Roncoroni Performance*
 
 👤 Cliente: ${clienteNombre} ${clienteApellido}
 🏍️ Moto: ${marca} ${cilindrada}
