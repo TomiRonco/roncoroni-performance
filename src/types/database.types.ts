@@ -7,6 +7,7 @@ export interface Reparacion {
   marca: string;
   cilindrada: string;
   observaciones: string;
+  notas_privadas?: string;
   user_id?: string;
   lista_para_retirar?: boolean;
   fecha_notificacion_retiro?: string;

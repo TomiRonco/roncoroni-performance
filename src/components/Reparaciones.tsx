@@ -3,12 +3,14 @@ import { supabase } from '../supabaseClient';
 import type { Reparacion, Presupuesto } from '../types/database.types';
 import Modal from './Modal';
 import PresupuestoModal from './PresupuestoModal';
+import NotasPrivadasModal from './NotasPrivadasModal';
 
 export default function Reparaciones() {
   const [reparaciones, setReparaciones] = useState<Reparacion[]>([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [showPresupuestoModal, setShowPresupuestoModal] = useState(false);
+  const [showNotasModal, setShowNotasModal] = useState(false);
   const [reparacionActual, setReparacionActual] = useState<Reparacion | null>(null);
   const [presupuestosMap, setPresupuestosMap] = useState<{ [key: string]: boolean }>({});
   const [formData, setFormData] = useState({
@@ -123,6 +125,30 @@ export default function Reparaciones() {
   const handleCrearPresupuesto = (reparacion: Reparacion) => {
     setReparacionActual(reparacion);
     setShowPresupuestoModal(true);
+  };
+
+  const handleAbrirNotas = (reparacion: Reparacion) => {
+    setReparacionActual(reparacion);
+    setShowNotasModal(true);
+  };
+
+  const handleGuardarNotas = async (notas: string) => {
+    if (!reparacionActual?.id) return;
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase.from('reparaciones') as any).update({
+        notas_privadas: notas
+      }).eq('id', reparacionActual.id);
+
+      if (error) throw error;
+      
+      // Recargar reparaciones
+      fetchReparaciones();
+    } catch (error) {
+      console.error('Error al guardar notas:', error);
+      throw error;
+    }
   };
 
   const handleNotificarRetiro = async (reparacion: Reparacion) => {
@@ -352,6 +378,21 @@ Estamos a tu disposición. ¡Gracias por confiar en nosotros! 🔧
                       </svg>
                     </button>
                   )}
+                  {/* Botón de notas privadas */}
+                  <button
+                    onClick={() => handleAbrirNotas(rep)}
+                    className={`transition ${
+                      rep.notas_privadas 
+                        ? 'text-yellow-600 hover:text-yellow-700' 
+                        : 'text-gray-400 hover:text-yellow-600'
+                    }`}
+                    title={rep.notas_privadas ? 'Ver/editar notas privadas' : 'Agregar notas privadas'}
+                  >
+                    <svg className="w-5 h-5" fill={rep.notas_privadas ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </button>
+                  {/* Botón de eliminar */}
                   <button
                     onClick={() => rep.id && handleDelete(rep.id)}
                     className="text-gray-400 hover:text-red-600 transition"
@@ -413,6 +454,19 @@ Estamos a tu disposición. ¡Gracias por confiar en nosotros! 🔧
           marca={reparacionActual.marca}
           cilindrada={reparacionActual.cilindrada}
           onSave={handleSavePresupuesto}
+        />
+      )}
+
+      {/* Modal de Notas Privadas */}
+      {reparacionActual && (
+        <NotasPrivadasModal
+          isOpen={showNotasModal}
+          onClose={() => {
+            setShowNotasModal(false);
+            setReparacionActual(null);
+          }}
+          notas={reparacionActual.notas_privadas || ''}
+          onSave={handleGuardarNotas}
         />
       )}
     </div>

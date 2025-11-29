@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '../supabaseClient';
 import Modal from './Modal';
 import type { Presupuesto } from '../types/database.types';
 
@@ -26,11 +27,49 @@ export default function PresupuestoModal({
   onSave,
 }: PresupuestoModalProps) {
   const [loading, setLoading] = useState(false);
+  const [presupuestoExistente, setPresupuestoExistente] = useState<Presupuesto | null>(null);
   const [formData, setFormData] = useState({
     descripcion_trabajo: '',
     costo_mano_obra: '',
     costo_repuestos: '',
   });
+
+  // Cargar presupuesto existente si hay uno
+  useEffect(() => {
+    const cargarPresupuesto = async () => {
+      if (!isOpen || !reparacionId) return;
+
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data, error } = await (supabase.from('presupuestos') as any)
+          .select('*')
+          .eq('reparacion_id', reparacionId)
+          .single();
+
+        if (error && error.code !== 'PGRST116') throw error;
+
+        if (data) {
+          setPresupuestoExistente(data);
+          setFormData({
+            descripcion_trabajo: data.descripcion_trabajo,
+            costo_mano_obra: String(data.costo_mano_obra),
+            costo_repuestos: String(data.costo_repuestos),
+          });
+        } else {
+          setPresupuestoExistente(null);
+          setFormData({
+            descripcion_trabajo: '',
+            costo_mano_obra: '',
+            costo_repuestos: '',
+          });
+        }
+      } catch (error) {
+        console.error('Error al cargar presupuesto:', error);
+      }
+    };
+
+    cargarPresupuesto();
+  }, [isOpen, reparacionId]);
 
   const calcularTotal = () => {
     const manoObra = parseFloat(formData.costo_mano_obra) || 0;
@@ -67,6 +106,47 @@ ${formData.descripcion_trabajo}
     return encodeURIComponent(mensaje);
   };
 
+  const handleGuardar = async () => {
+    if (!formData.descripcion_trabajo || !formData.costo_mano_obra) {
+      alert('Por favor completa los campos obligatorios');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const total = calcularTotal();
+      const presupuesto: Presupuesto = {
+        id: presupuestoExistente?.id,
+        reparacion_id: reparacionId,
+        descripcion_trabajo: formData.descripcion_trabajo,
+        costo_mano_obra: parseFloat(formData.costo_mano_obra),
+        costo_repuestos: parseFloat(formData.costo_repuestos) || 0,
+        total,
+        enviado_whatsapp: presupuestoExistente?.enviado_whatsapp || false,
+        fecha_envio: presupuestoExistente?.fecha_envio,
+      };
+
+      if (presupuestoExistente) {
+        // Actualizar presupuesto existente
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error } = await (supabase.from('presupuestos') as any).update(presupuesto).eq('id', presupuestoExistente.id);
+        if (error) throw error;
+      } else {
+        // Crear nuevo presupuesto
+        await onSave(presupuesto);
+      }
+
+      alert('Presupuesto guardado correctamente');
+      onClose();
+    } catch (error) {
+      console.error('Error al guardar presupuesto:', error);
+      alert('Error al guardar el presupuesto');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleEnviarWhatsApp = async () => {
     if (!formData.descripcion_trabajo || !formData.costo_mano_obra) {
       alert('Por favor completa los campos obligatorios');
@@ -78,6 +158,7 @@ ${formData.descripcion_trabajo}
     try {
       const total = calcularTotal();
       const presupuesto: Presupuesto = {
+        id: presupuestoExistente?.id,
         reparacion_id: reparacionId,
         descripcion_trabajo: formData.descripcion_trabajo,
         costo_mano_obra: parseFloat(formData.costo_mano_obra),
@@ -87,7 +168,15 @@ ${formData.descripcion_trabajo}
         fecha_envio: new Date().toISOString(),
       };
 
-      await onSave(presupuesto);
+      if (presupuestoExistente) {
+        // Actualizar presupuesto existente y marcar como enviado
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error } = await (supabase.from('presupuestos') as any).update(presupuesto).eq('id', presupuestoExistente.id);
+        if (error) throw error;
+      } else {
+        // Crear nuevo presupuesto ya marcado como enviado
+        await onSave(presupuesto);
+      }
 
       // Limpiar el número de teléfono (eliminar espacios, guiones, etc)
       const numeroLimpio = clienteCelular.replace(/\D/g, '');
@@ -214,12 +303,19 @@ ${formData.descripcion_trabajo}
             Cancelar
           </button>
           <button
+            onClick={handleGuardar}
+            disabled={loading || !formData.descripcion_trabajo || !formData.costo_mano_obra}
+            className="flex-1 bg-white border border-gray-900 text-gray-900 py-3 rounded font-medium hover:bg-gray-50 transition disabled:border-gray-400 disabled:text-gray-400 disabled:cursor-not-allowed text-sm"
+          >
+            {loading ? 'Guardando...' : 'Guardar'}
+          </button>
+          <button
             onClick={handleEnviarWhatsApp}
             disabled={loading || !formData.descripcion_trabajo || !formData.costo_mano_obra}
             className="flex-1 bg-gray-900 text-white py-3 rounded font-medium hover:bg-gray-800 transition disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
           >
             {loading ? (
-              'Guardando...'
+              'Enviando...'
             ) : (
               <>
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
