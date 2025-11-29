@@ -45,19 +45,15 @@ export default function Reparaciones() {
       const { data: { user } } = await supabase.auth.getUser();
       
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase.from('reparaciones') as any).insert({
+      const { error } = await (supabase.from('reparaciones') as any).insert({
         ...formData,
         user_id: user?.id,
-      }).select().single();
+      });
 
       if (error) throw error;
 
       setShowModal(false);
       fetchReparaciones();
-      
-      // Abrir modal de presupuesto con la reparación recién creada
-      setReparacionActual(data);
-      setShowPresupuestoModal(true);
       
       // Resetear formulario
       setFormData({
@@ -68,6 +64,8 @@ export default function Reparaciones() {
         cilindrada: '',
         observaciones: '',
       });
+      
+      alert('¡Reparación registrada exitosamente!');
     } catch (error) {
       console.error('Error al guardar:', error);
       alert('Error al guardar la reparación');
@@ -99,6 +97,11 @@ export default function Reparaciones() {
       console.error('Error al guardar presupuesto:', error);
       throw error;
     }
+  };
+
+  const handleCrearPresupuesto = (reparacion: Reparacion) => {
+    setReparacionActual(reparacion);
+    setShowPresupuestoModal(true);
   };
 
   return (
@@ -235,18 +238,28 @@ export default function Reparaciones() {
           reparaciones.map((rep) => (
             <div key={rep.id} className="bg-white rounded-lg shadow p-4">
               <div className="flex justify-between items-start mb-3">
-                <div>
+                <div className="flex-1">
                   <h3 className="font-bold text-lg text-gray-800">
                     {rep.nombre} {rep.apellido}
                   </h3>
                   <p className="text-sm text-gray-600">📱 {rep.celular}</p>
                 </div>
-                <button
-                  onClick={() => rep.id && handleDelete(rep.id)}
-                  className="text-red-500 hover:text-red-700 text-xl"
-                >
-                  🗑️
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleCrearPresupuesto(rep)}
+                    className="bg-green-500 hover:bg-green-600 text-white p-2 rounded-lg transition shadow-sm"
+                    title="Crear presupuesto y enviar por WhatsApp"
+                  >
+                    💰
+                  </button>
+                  <button
+                    onClick={() => rep.id && handleDelete(rep.id)}
+                    className="text-red-500 hover:text-red-700 text-xl"
+                    title="Eliminar reparación"
+                  >
+                    🗑️
+                  </button>
+                </div>
               </div>
               
               <div className="grid grid-cols-2 gap-2 text-sm mb-2">
