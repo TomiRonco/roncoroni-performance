@@ -50,17 +50,16 @@ export default function PresupuestoModal({
     const total = calcularTotal();
 
     const mensaje = `
-🏍️ *Roncoroni Performance*
+🏍️ *RONCORONI PERFORMANCE*
 
-👤 Cliente: ${clienteNombre} ${clienteApellido}
-🏍️ Moto: ${marca} ${cilindrada}
+Hola ${clienteNombre} ${clienteApellido}! 👋
+
+Revisamos tu moto: ${marca} ${cilindrada}
 
 📋 *Trabajos a realizar:*
 ${formData.descripcion_trabajo}
 
-━━━━━━━━━━━━━━━━━
 💰 *COSTO TOTAL: ${formatearPrecio(total)}*
-━━━━━━━━━━━━━━━━━
 
 ¡Gracias por confiar en nosotros! 🔧
     `.trim();
