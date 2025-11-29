@@ -99,7 +99,13 @@ ${formData.descripcion_trabajo}
       // Abrir WhatsApp
       const mensajeWhatsApp = generarMensajeWhatsApp();
       const urlWhatsApp = `https://wa.me/${numeroCompleto}?text=${mensajeWhatsApp}`;
-      window.open(urlWhatsApp, '_blank');
+      
+      // En móvil, usar location.href en lugar de window.open para abrir la app directamente
+      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+        window.location.href = urlWhatsApp;
+      } else {
+        window.open(urlWhatsApp, '_blank');
+      }
 
       // Resetear formulario y cerrar
       setFormData({
