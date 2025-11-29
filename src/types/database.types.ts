@@ -8,6 +8,19 @@ export interface Reparacion {
   cilindrada: string;
   observaciones: string;
   user_id?: string;
+  presupuesto?: Presupuesto;
+}
+
+export interface Presupuesto {
+  id?: string;
+  reparacion_id?: string;
+  descripcion_trabajo: string;
+  costo_mano_obra: number;
+  costo_repuestos: number;
+  total: number;
+  enviado_whatsapp?: boolean;
+  fecha_envio?: string;
+  created_at?: string;
 }
 
 export interface Database {
@@ -17,6 +30,11 @@ export interface Database {
         Row: Reparacion;
         Insert: Omit<Reparacion, 'id' | 'created_at'>;
         Update: Partial<Omit<Reparacion, 'id' | 'created_at'>>;
+      };
+      presupuestos: {
+        Row: Presupuesto;
+        Insert: Omit<Presupuesto, 'id' | 'created_at'>;
+        Update: Partial<Omit<Presupuesto, 'id' | 'created_at'>>;
       };
     };
   };

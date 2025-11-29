@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
-import type { Reparacion } from '../types/database.types';
+import type { Reparacion, Presupuesto } from '../types/database.types';
 import Modal from './Modal';
+import PresupuestoModal from './PresupuestoModal';
 
 export default function Reparaciones() {
   const [reparaciones, setReparaciones] = useState<Reparacion[]>([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [showPresupuestoModal, setShowPresupuestoModal] = useState(false);
+  const [reparacionActual, setReparacionActual] = useState<Reparacion | null>(null);
   const [formData, setFormData] = useState({
     nombre: '',
     apellido: '',
@@ -42,13 +45,20 @@ export default function Reparaciones() {
       const { data: { user } } = await supabase.auth.getUser();
       
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = await (supabase.from('reparaciones') as any).insert({
+      const { data, error } = await (supabase.from('reparaciones') as any).insert({
         ...formData,
         user_id: user?.id,
-      });
+      }).select().single();
 
       if (error) throw error;
 
+      setShowModal(false);
+      fetchReparaciones();
+      
+      // Abrir modal de presupuesto con la reparación recién creada
+      setReparacionActual(data);
+      setShowPresupuestoModal(true);
+      
       // Resetear formulario
       setFormData({
         nombre: '',
@@ -58,9 +68,6 @@ export default function Reparaciones() {
         cilindrada: '',
         observaciones: '',
       });
-      setShowModal(false);
-      fetchReparaciones();
-      alert('¡Reparación registrada exitosamente!');
     } catch (error) {
       console.error('Error al guardar:', error);
       alert('Error al guardar la reparación');
@@ -80,6 +87,17 @@ export default function Reparaciones() {
     } catch (error) {
       console.error('Error al eliminar:', error);
       alert('Error al eliminar la reparación');
+    }
+  };
+
+  const handleSavePresupuesto = async (presupuesto: Presupuesto) => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase.from('presupuestos') as any).insert(presupuesto);
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error al guardar presupuesto:', error);
+      throw error;
     }
   };
 
@@ -263,6 +281,24 @@ export default function Reparaciones() {
           ))
         )}
       </div>
+
+      {/* Modal de Presupuesto */}
+      {reparacionActual && (
+        <PresupuestoModal
+          isOpen={showPresupuestoModal}
+          onClose={() => {
+            setShowPresupuestoModal(false);
+            setReparacionActual(null);
+          }}
+          reparacionId={reparacionActual.id || ''}
+          clienteNombre={reparacionActual.nombre}
+          clienteApellido={reparacionActual.apellido}
+          clienteCelular={reparacionActual.celular}
+          marca={reparacionActual.marca}
+          cilindrada={reparacionActual.cilindrada}
+          onSave={handleSavePresupuesto}
+        />
+      )}
     </div>
   );
 }
