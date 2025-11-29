@@ -10,6 +10,7 @@ export default function Reparaciones() {
   const [showModal, setShowModal] = useState(false);
   const [showPresupuestoModal, setShowPresupuestoModal] = useState(false);
   const [reparacionActual, setReparacionActual] = useState<Reparacion | null>(null);
+  const [presupuestosMap, setPresupuestosMap] = useState<{ [key: string]: boolean }>({});
   const [formData, setFormData] = useState({
     nombre: '',
     apellido: '',
@@ -25,6 +26,7 @@ export default function Reparaciones() {
 
   const fetchReparaciones = async () => {
     try {
+      // Cargar reparaciones
       const { data, error } = await supabase
         .from('reparaciones')
         .select('*')
@@ -32,6 +34,22 @@ export default function Reparaciones() {
 
       if (error) throw error;
       setReparaciones(data || []);
+
+      // Cargar presupuestos para saber cuáles reparaciones ya tienen
+      const { data: presupuestos, error: presupuestosError } = await supabase
+        .from('presupuestos')
+        .select('reparacion_id');
+
+      if (presupuestosError) throw presupuestosError;
+
+      // Crear un mapa de reparacion_id -> true si existe presupuesto
+      const map: { [key: string]: boolean } = {};
+      presupuestos?.forEach((p: { reparacion_id?: string }) => {
+        if (p.reparacion_id) {
+          map[p.reparacion_id] = true;
+        }
+      });
+      setPresupuestosMap(map);
     } catch (error) {
       console.error('Error al cargar reparaciones:', error);
     }
@@ -93,6 +111,9 @@ export default function Reparaciones() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error } = await (supabase.from('presupuestos') as any).insert(presupuesto);
       if (error) throw error;
+      
+      // Recargar reparaciones y presupuestos para actualizar el estado
+      fetchReparaciones();
     } catch (error) {
       console.error('Error al guardar presupuesto:', error);
       throw error;
@@ -245,13 +266,19 @@ export default function Reparaciones() {
                   <p className="text-sm text-gray-600 mt-0.5">{rep.celular}</p>
                 </div>
                 <div className="flex gap-2">
-                  <button
-                    onClick={() => handleCrearPresupuesto(rep)}
-                    className="bg-gray-900 hover:bg-gray-800 text-white px-3 py-1.5 rounded text-xs font-medium transition"
-                    title="Crear presupuesto y enviar por WhatsApp"
-                  >
-                    Presupuesto
-                  </button>
+                  {presupuestosMap[rep.id || ''] ? (
+                    <div className="bg-green-100 text-green-700 px-3 py-1.5 rounded text-xs font-medium border border-green-300">
+                      ✓ Presupuestado
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => handleCrearPresupuesto(rep)}
+                      className="bg-gray-900 hover:bg-gray-800 text-white px-3 py-1.5 rounded text-xs font-medium transition"
+                      title="Crear presupuesto y enviar por WhatsApp"
+                    >
+                      Presupuesto
+                    </button>
+                  )}
                   <button
                     onClick={() => rep.id && handleDelete(rep.id)}
                     className="text-gray-400 hover:text-red-600 transition"
