@@ -125,6 +125,50 @@ export default function Reparaciones() {
     setShowPresupuestoModal(true);
   };
 
+  const handleNotificarRetiro = async (reparacion: Reparacion) => {
+    try {
+      // Actualizar la reparación como lista para retirar
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase.from('reparaciones') as any).update({ 
+        lista_para_retirar: true,
+        fecha_notificacion_retiro: new Date().toISOString()
+      }).eq('id', reparacion.id);
+
+      if (error) throw error;
+
+      // Crear mensaje de WhatsApp
+      const mensaje = `
+🏍️ *RONCORONI PERFORMANCE*
+
+Hola ${reparacion.nombre}! 👋
+
+Tu *${reparacion.marca} ${reparacion.cilindrada}* ya está lista para retirar! ✅
+
+Estamos a tu disposición. ¡Gracias por confiar en nosotros! 🔧
+      `.trim();
+
+      const numeroLimpio = reparacion.celular.replace(/\D/g, '');
+      const numeroCompleto = numeroLimpio.startsWith('549') 
+        ? numeroLimpio 
+        : `549${numeroLimpio}`;
+
+      const urlWhatsApp = `https://wa.me/${numeroCompleto}?text=${encodeURIComponent(mensaje)}`;
+
+      // Abrir WhatsApp
+      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+        window.location.href = urlWhatsApp;
+      } else {
+        window.open(urlWhatsApp, '_blank');
+      }
+
+      // Recargar datos
+      fetchReparaciones();
+    } catch (error) {
+      console.error('Error al notificar retiro:', error);
+      alert('Error al enviar notificación');
+    }
+  };
+
   return (
     <div className="p-6 space-y-4 max-w-2xl mx-auto">
       {/* Botón para abrir modal */}
@@ -267,9 +311,28 @@ export default function Reparaciones() {
                 </div>
                 <div className="flex gap-2">
                   {presupuestosMap[rep.id || ''] ? (
-                    <div className="bg-green-100 text-green-700 px-3 py-1.5 rounded text-xs font-medium border border-green-300">
-                      ✓ Presupuestado
-                    </div>
+                    <>
+                      <div className="bg-green-100 text-green-700 px-3 py-1.5 rounded text-xs font-medium border border-green-300">
+                        ✓ Presupuestado
+                      </div>
+                      {!rep.lista_para_retirar && (
+                        <button
+                          onClick={() => handleNotificarRetiro(rep)}
+                          className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded text-xs font-medium transition flex items-center gap-1"
+                          title="Notificar que está lista para retirar"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                          </svg>
+                          Lista
+                        </button>
+                      )}
+                      {rep.lista_para_retirar && (
+                        <div className="bg-blue-100 text-blue-700 px-3 py-1.5 rounded text-xs font-medium border border-blue-300">
+                          🔔 Notificado
+                        </div>
+                      )}
+                    </>
                   ) : (
                     <button
                       onClick={() => handleCrearPresupuesto(rep)}

@@ -8,6 +8,8 @@ export interface Reparacion {
   cilindrada: string;
   observaciones: string;
   user_id?: string;
+  lista_para_retirar?: boolean;
+  fecha_notificacion_retiro?: string;
   presupuesto?: Presupuesto;
 }
 
